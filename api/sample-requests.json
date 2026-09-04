@@ -1,0 +1,25 @@
+{
+  "approvedRequest": {
+    "method": "POST",
+    "endpoint": "/moderate",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "imageUrl": "https://images.unsplash.com/photo-1516321318423-f06f85e504b3"
+    },
+    "expectedDecision": "APPROVED"
+  },
+  "flaggedRequest": {
+    "method": "POST",
+    "endpoint": "/moderate",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "imageUrl": "https://example.com/flagged-image.jpg"
+    },
+    "expectedDecision": "FLAGGED"
+  },
+  "curlExample": "curl -X POST \"https://hls7qob2vf.execute-api.ap-south-1.amazonaws.com/moderate\" -H \"Content-Type: application/json\" -d '{\"imageUrl\":\"https://images.unsplash.com/photo-1516321318423-f06f85e504b3\"}'"
+}
