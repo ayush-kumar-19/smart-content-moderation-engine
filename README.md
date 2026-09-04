@@ -1,67 +1,155 @@
-# Smart Content Moderation Engine
+Smart Content Moderation Engine
 
 An event-driven serverless image content moderation system built using AWS Lambda, Amazon Rekognition, Amazon API Gateway, Amazon DynamoDB, Amazon SNS, and Discord.
 
-## Features
+Overview
 
-- Accepts image URLs through a REST API
-- Automatically analyzes images using Amazon Rekognition
-- Detects potentially unsafe content
-- Classifies moderation severity
-- Stores moderation results in DynamoDB
-- Sends email alerts using Amazon SNS
-- Sends Discord moderation alerts
-- Provides API responses with moderation results
-- Uses CloudWatch for Lambda execution logs
+The Smart Content Moderation Engine automatically analyzes user-submitted images and identifies potentially unsafe or policy-violating content.
 
-## Architecture
+The system receives an image URL through an HTTP API, downloads the image, sends it to Amazon Rekognition for moderation analysis, determines the moderation verdict and severity, stores an audit record in DynamoDB, and sends notifications when unsafe content is detected.
 
-```text
-Client
-   |
-   | POST /moderate
-   v
+Key Features
+
+Image moderation through a REST API
+
+Serverless processing using AWS Lambda
+
+Image analysis using Amazon Rekognition
+
+Automatic APPROVED or FLAGGED decision
+
+HIGH, MEDIUM, and LOW severity classification
+
+Moderation audit logs stored in DynamoDB
+
+Email alerts using Amazon SNS
+
+Discord alerts for moderators
+
+CloudWatch logging and monitoring
+
+Event-driven serverless architecture
+
+Architecture
+
+                         Client
+                           |
+                           | HTTPS POST /moderate
+                           v
+                   Amazon API Gateway
+                           |
+                           v
+                    AWS Lambda
+                           |
+                           v
+                 Amazon Rekognition
+                           |
+                    Moderation Result
+                           |
+              +------------+------------+
+              |                         |
+              v                         v
+       Amazon DynamoDB             Amazon SNS
+         Audit Log                    |
+                                      +------> Email
+                                      |
+                                      +------> Discord
+
+Processing Flow
+
+Client sends an image URL to the /moderate API.
+
+Amazon API Gateway receives the request.
+
+API Gateway invokes the AWS Lambda function.
+
+Lambda validates the request.
+
+Lambda downloads the image.
+
+Lambda sends the image to Amazon Rekognition.
+
+Rekognition returns moderation labels and confidence scores.
+
+Lambda determines the moderation verdict and severity.
+
+The result is stored in Amazon DynamoDB.
+
+If unsafe content is detected, Lambda sends an SNS alert.
+
+SNS delivers the alert through email.
+
+Lambda sends a Discord notification.
+
+Lambda returns the moderation result to the API client.
+
+AWS Services Used
+
+AWS Service
+
+Purpose
+
 Amazon API Gateway
-   |
-   v
+
+Provides the HTTP API endpoint
+
 AWS Lambda
-   |
-   v
+
+Executes the moderation workflow
+
 Amazon Rekognition
-   |
-   +--------------------+
-   |                    |
-   v                    v
-DynamoDB               SNS
-Audit Log                |
-                          +----> Email
-                          |
-                          +----> Discord
-```text
-## AWS Services
-Service	Purpose
-Amazon API Gateway	Exposes the moderation API
-AWS Lambda	Executes the moderation workflow
-Amazon Rekognition	Detects unsafe image content
-Amazon DynamoDB	Stores moderation audit records
-Amazon SNS	Sends moderation alerts
-Discord	Receives moderator notifications
-Amazon CloudWatch	Stores Lambda execution logs
+
+Detects potentially unsafe image content
+
+Amazon DynamoDB
+
+Stores moderation audit records
+
+Amazon SNS
+
+Sends email notifications
+
+Amazon CloudWatch
+
+Stores Lambda execution logs
+
+External Service
+
+Service
+
+Purpose
+
+Discord
+
+Receives moderation alerts through a webhook
+
 API
-## Endpoint
+
+Endpoint
+
 POST /moderate
-## Request
+
+Request Header
+
+Content-Type: application/json
+
+Request Body
+
 {
   "imageUrl": "https://example.com/image.jpg"
 }
-## Approved Response
+
+Approved Response
+
 {
   "requestId": "UUID",
   "verdict": "APPROVED",
   "labels": [],
   "message": "No policy violations detected"
 }
-## Flagged Response
+
+Flagged Response
+
 {
   "requestId": "UUID",
   "verdict": "FLAGGED",
@@ -74,45 +162,94 @@ POST /moderate
   ],
   "message": "Potentially unsafe content detected"
 }
-## Moderation Severity
-Confidence	Severity
->= 90	HIGH
-70 - 89.99	MEDIUM
-< 70	LOW
-## DynamoDB
 
-Table:
+Moderation Severity
+
+The system uses the confidence score returned by Amazon Rekognition to determine severity.
+
+Confidence Score
+
+Severity
+
+90 or higher
+
+HIGH
+
+70 to less than 90
+
+MEDIUM
+
+Less than 70
+
+LOW
+
+A potentially unsafe moderation label results in a FLAGGED verdict.
+
+DynamoDB Audit Log
+
+Table
 
 ModerationLogs
 
-Partition Key:
+Partition Key
 
 requestId
 
-Stored information includes:
+Stored Information
 
-Request ID
-Image URL
-Timestamp
-Verdict
-Severity
-Moderation labels
-Confidence score
-Notification status
-Notifications
+Each moderation request can contain:
 
-When unsafe content is detected:
+requestId
 
-Lambda
-   |
-   +----> Amazon SNS ----> Email
-   |
-   +----> Discord Webhook
-## Monitoring
+imageUrl
 
-Lambda execution logs are available through Amazon CloudWatch.
+timestamp
 
-Important processing events include:
+verdict
+
+severity
+
+labels
+
+confidence
+
+notificationStatus
+
+Example record:
+
+{
+  "requestId": "example-request-id",
+  "imageUrl": "https://example.com/image.jpg",
+  "timestamp": "2026-09-04T10:30:00Z",
+  "verdict": "FLAGGED",
+  "severity": "HIGH",
+  "labels": [
+    "Weapons",
+    "Violence"
+  ],
+  "confidence": 99.95,
+  "notificationStatus": "SNS_SENT,DISCORD_SENT"
+}
+
+Notification System
+
+When potentially unsafe content is detected:
+
+                    AWS Lambda
+                        |
+              +---------+---------+
+              |                   |
+              v                   v
+        Amazon SNS          Discord Webhook
+              |
+              v
+            Email
+
+Monitoring
+
+AWS Lambda execution logs are available through Amazon CloudWatch.
+
+The application records important processing events such as:
 
 REQUEST_RECEIVED
 IMAGE_DOWNLOAD_STARTED
@@ -124,19 +261,222 @@ DYNAMODB_WRITE
 SNS_NOTIFICATION_SENT
 DISCORD_NOTIFICATION_SENT
 REQUEST_COMPLETED
-## Project Structure
+
+Error Handling
+
+The system handles common failure cases including:
+
+Missing image URL
+
+Invalid request data
+
+Invalid image URL
+
+Image download failure
+
+Unsupported image
+
+Amazon Rekognition errors
+
+DynamoDB write errors
+
+SNS notification errors
+
+Discord notification errors
+
+Project Structure
+
 smart-content-moderation-engine/
+│
 ├── README.md
 ├── LICENSE
 ├── .gitignore
+│
 ├── lambda/
 │   └── lambda_function.py
-├── tests/
+│
 ├── api/
+│   └── sample-requests.json
+│
 ├── architecture/
+│   ├── architecture-diagram.png
+│   └── architecture.md
+│
 ├── docs/
+│   ├── setup.md
+│   ├── api.md
+│   ├── deployment.md
+│   └── testing.md
+│
+├── tests/
+│   ├── test_moderation.py
+│   ├── test_validation.py
+│   └── test_notifications.py
+│
 └── screenshots/
-## AWS Region
+    ├── api-gateway.png
+    ├── lambda.png
+    ├── dynamodb.png
+    ├── rekognition.png
+    ├── sns.png
+    ├── email.png
+    ├── discord.png
+    ├── cloudwatch.png
+    ├── approved.png
+    └── flagged.png
+
+AWS Configuration
+
+Region
+
 Asia Pacific (Mumbai)
 ap-south-1
+
+Lambda Function
+
+SmartContentModerationFunction
+
+DynamoDB Table
+
+ModerationLogs
+
+SNS Topic
+
+content-moderation-alerts
+
+API Gateway
+
+SmartContentModeration
+
+API Route
+
+POST /moderate
+
+Testing
+
+The application was tested at multiple stages of the workflow.
+
+Lambda Test
+
+The Lambda function successfully processed an image and returned a moderation result.
+
+Rekognition Test
+
+Amazon Rekognition successfully detected moderation labels including:
+
+Weapons
+Violence
+
+with a high confidence score.
+
+DynamoDB Test
+
+Moderation results were successfully stored in the ModerationLogs table.
+
+SNS Test
+
+Flagged content successfully triggered an email notification.
+
+Discord Test
+
+Flagged content successfully triggered a notification in the configured Discord moderation channel.
+
+CloudWatch Test
+
+Lambda execution logs successfully recorded the moderation workflow.
+
+End-to-End Workflow
+
+Client
+  |
+  | POST /moderate
+  v
+API Gateway
+  |
+  v
+Lambda
+  |
+  v
+Rekognition
+  |
+  +----------------------+
+  |                      |
+  v                      v
+APPROVED               FLAGGED
+  |                      |
+  v                      +----> DynamoDB
+DynamoDB                 |
+                         +----> SNS ----> Email
+                         |
+                         +----> Discord
+
+Security
+
+AWS Lambda uses a dedicated IAM execution role.
+
+Lambda permissions are restricted to the AWS services required by the application.
+
+AWS credentials are not stored in the source code.
+
+Discord webhook credentials should not be committed to GitHub.
+
+Sensitive configuration should be stored using secure AWS configuration mechanisms.
+
+The project does not use AWS root access keys.
+
+Project Status
+
+MVP Completed
+
+AWS Lambda
+
+Amazon Rekognition
+
+Amazon DynamoDB
+
+Amazon SNS
+
+Discord notification
+
+Amazon API Gateway
+
+Amazon CloudWatch
+
+IAM execution role
+
+Image moderation workflow
+
+Audit logging
+
+Email notification
+
+Discord notification
+
+End-to-end testing
+
+Future Enhancements
+
+Possible future improvements include:
+
+Amazon S3 for image storage
+
+Amazon SQS for asynchronous processing
+
+Amazon EventBridge for event routing
+
+AWS Secrets Manager for webhook secrets
+
+Infrastructure as Code using AWS SAM or Terraform
+
+Authentication and authorization for the API
+
+Rate limiting and API usage plans
+
+Automated unit and integration testing
+
+CI/CD using GitHub Actions
+
+License
+
+This project is licensed under the MIT License.
 
