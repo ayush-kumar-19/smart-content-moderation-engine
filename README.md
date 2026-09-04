@@ -37,7 +37,7 @@ Audit Log                |
                           +----> Email
                           |
                           +----> Discord
-AWS Services
+## AWS Services
 Service	Purpose
 Amazon API Gateway	Exposes the moderation API
 AWS Lambda	Executes the moderation workflow
@@ -47,20 +47,20 @@ Amazon SNS	Sends moderation alerts
 Discord	Receives moderator notifications
 Amazon CloudWatch	Stores Lambda execution logs
 API
-Endpoint
+## Endpoint
 POST /moderate
-Request
+## Request
 {
   "imageUrl": "https://example.com/image.jpg"
 }
-Approved Response
+## Approved Response
 {
   "requestId": "UUID",
   "verdict": "APPROVED",
   "labels": [],
   "message": "No policy violations detected"
 }
-Flagged Response
+## Flagged Response
 {
   "requestId": "UUID",
   "verdict": "FLAGGED",
@@ -73,12 +73,12 @@ Flagged Response
   ],
   "message": "Potentially unsafe content detected"
 }
-Moderation Severity
+## Moderation Severity
 Confidence	Severity
 >= 90	HIGH
 70 - 89.99	MEDIUM
 < 70	LOW
-DynamoDB
+## DynamoDB
 
 Table:
 
@@ -107,7 +107,7 @@ Lambda
    +----> Amazon SNS ----> Email
    |
    +----> Discord Webhook
-Monitoring
+## Monitoring
 
 Lambda execution logs are available through Amazon CloudWatch.
 
@@ -123,7 +123,7 @@ DYNAMODB_WRITE
 SNS_NOTIFICATION_SENT
 DISCORD_NOTIFICATION_SENT
 REQUEST_COMPLETED
-Project Structure
+## Project Structure
 smart-content-moderation-engine/
 ├── README.md
 ├── LICENSE
@@ -135,19 +135,7 @@ smart-content-moderation-engine/
 ├── architecture/
 ├── docs/
 └── screenshots/
-AWS Region
+## AWS Region
 Asia Pacific (Mumbai)
 ap-south-1
-Project Status
-
-Completed MVP:
-
- AWS Lambda
- Amazon Rekognition
- DynamoDB audit logging
- SNS email notification
- Discord notification
- API Gateway
- CloudWatch logging
- End-to-end moderation workflow
 
