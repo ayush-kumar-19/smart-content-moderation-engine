@@ -36,8 +36,8 @@ DynamoDB               SNS
 Audit Log                |
                           +----> Email
                           |
-
-```text                          +----> Discord
+                          +----> Discord
+```text
 ## AWS Services
 Service	Purpose
 Amazon API Gateway	Exposes the moderation API
