@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Sentinel AI | Content Moderation</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    >
+</head>
+
+<body>
+    <div class="app-shell">
+
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-icon">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+
+                <div>
+                    <h2>Sentinel AI</h2>
+                    <span>Moderation Engine</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active">
+                    <i class="fa-solid fa-chart-line"></i>
+                    <span>Dashboard</span>
+                </a>
+
+                <a href="#moderationSection" class="nav-item">
+                    <i class="fa-solid fa-image"></i>
+                    <span>Image Analysis</span>
+                </a>
+
+                <a href="#resultsSection" class="nav-item">
+                    <i class="fa-solid fa-file-shield"></i>
+                    <span>Analysis Results</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-bottom">
+                <div class="aws-status">
+                    <span class="status-dot"></span>
+                    <div>
+                        <strong>AWS Services</strong>
+                        <small>Connected</small>
+                    </div>
+                </div>
+
+                <p class="sidebar-footer">
+                    Powered by AWS Lambda<br>
+                    and Amazon Rekognition
+                </p>
+            </div>
+        </aside>
+
+        <main class="main-content">
+
+            <header class="topbar">
+                <div>
+                    <p class="eyebrow">SECURITY OPERATIONS</p>
+                    <h1>Content Moderation Dashboard</h1>
+                    <p class="page-subtitle">
+                        Analyze images and identify potentially unsafe content
+                        using AI-powered moderation.
+                    </p>
+                </div>
+
+                <div class="topbar-badge">
+                    <i class="fa-solid fa-circle-check"></i>
+                    System Online
+                </div>
+            </header>
+
+            <section class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon blue">
+                        <i class="fa-solid fa-cloud"></i>
+                    </div>
+
+                    <div>
+                        <span class="stat-label">Processing Engine</span>
+                        <h3>Amazon Rekognition</h3>
+                        <p class="stat-caption">AI-powered image analysis</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon purple">
+                        <i class="fa-solid fa-bolt"></i>
+                    </div>
+
+                    <div>
+                        <span class="stat-label">Architecture</span>
+                        <h3>Serverless</h3>
+                        <p class="stat-caption">AWS Lambda + API Gateway</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon green">
+                        <i class="fa-solid fa-database"></i>
+                    </div>
+
+                    <div>
+                        <span class="stat-label">Audit Storage</span>
+                        <h3>DynamoDB</h3>
+                        <p class="stat-caption">Moderation logs enabled</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="workspace-grid">
+
+                <div class="panel" id="moderationSection">
+                    <div class="panel-heading">
+                        <div>
+                            <span class="section-number">01</span>
+                            <h2>Analyze an Image</h2>
+                            <p>
+                                Submit a publicly accessible image URL for
+                                moderation.
+                            </p>
+                        </div>
+
+                        <div class="panel-icon">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i>
+                        </div>
+                    </div>
+
+                    <form id="moderationForm">
+
+                        <label for="imageUrl">Image URL</label>
+
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-link"></i>
+
+                            <input
+                                type="url"
+                                id="imageUrl"
+                                placeholder="https://example.com/image.jpg"
+                            >
+                        </div>
+<div class="upload-divider">
+    <span>OR</span>
+</div>
+
+<label for="imageFile" class="upload-label">
+    <i class="fa-solid fa-cloud-arrow-up"></i>
+    Upload an image from your laptop
+</label>
+
+<input
+    type="file"
+    id="imageFile"
+    accept="image/*"
+    class="file-input"
+>
+
+<p class="file-help">
+    Supported formats: JPG, JPEG, PNG · Maximum size: 5 MB
+</p>
+
+                        <div class="quick-images">
+                            <span>Try an example:</span>
+
+                            <button
+                                type="button"
+                                class="sample-button"
+                                data-url="https://images.unsplash.com/photo-1417325384643-aac51acc9e5d?fm=jpg&w=800&q=80"
+                            >
+                                Nature
+                            </button>
+
+                            <button
+                                type="button"
+                                class="sample-button"
+                                data-url="https://images.unsplash.com/photo-1517841905240-472988babdf9?fm=jpg&w=800&q=80"
+                            >
+                                Portrait
+                            </button>
+                        </div>
+
+                        <button
+                            type="submit"
+                            id="moderateButton"
+                            class="primary-button"
+                        >
+                            <i class="fa-solid fa-shield-halved"></i>
+                            Analyze Image
+                        </button>
+                    </form>
+
+                    <div id="previewContainer" class="preview-container hidden">
+                        <div class="preview-heading">
+                            <h3>Image Preview</h3>
+                            <span>
+                                <i class="fa-solid fa-eye"></i>
+                                Preview
+                            </span>
+                        </div>
+
+                        <div class="image-frame">
+                            <img id="imagePreview" alt="Selected image preview">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel process-panel">
+                    <div class="panel-heading">
+                        <div>
+                            <span class="section-number">02</span>
+                            <h2>Processing Pipeline</h2>
+                            <p>How your image is analyzed.</p>
+                        </div>
+                    </div>
+
+                    <div class="pipeline">
+                        <div class="pipeline-step">
+                            <div class="pipeline-icon">
+                                <i class="fa-solid fa-upload"></i>
+                            </div>
+
+                            <div>
+                                <strong>Image Submission</strong>
+                                <span>Receive image URL</span>
+                            </div>
+                        </div>
+
+                        <div class="pipeline-line"></div>
+
+                        <div class="pipeline-step">
+                            <div class="pipeline-icon">
+                                <i class="fa-solid fa-gears"></i>
+                            </div>
+
+                            <div>
+                                <strong>AWS Lambda</strong>
+                                <span>Process moderation request</span>
+                            </div>
+                        </div>
+
+                        <div class="pipeline-line"></div>
+
+                        <div class="pipeline-step">
+                            <div class="pipeline-icon">
+                                <i class="fa-solid fa-brain"></i>
+                            </div>
+
+                            <div>
+                                <strong>Amazon Rekognition</strong>
+                                <span>Detect unsafe content</span>
+                            </div>
+                        </div>
+
+                        <div class="pipeline-line"></div>
+
+                        <div class="pipeline-step">
+                            <div class="pipeline-icon">
+                                <i class="fa-solid fa-file-circle-check"></i>
+                            </div>
+
+                            <div>
+                                <strong>Decision & Logging</strong>
+                                <span>Store result and send alerts</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+
+            <section id="loading" class="panel loading-panel hidden">
+                <div class="loader"></div>
+
+                <h2>Analyzing Image</h2>
+
+                <p>
+                    Amazon Rekognition is inspecting the submitted image.
+                    Please wait...
+                </p>
+            </section>
+
+            <section id="errorCard" class="panel error-panel hidden">
+                <div class="error-icon">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+
+                <div>
+                    <h2>Analysis Failed</h2>
+                    <p id="errorMessage"></p>
+                </div>
+            </section>
+
+            <section id="resultsSection" class="panel results-panel hidden">
+                <div class="panel-heading result-heading">
+                    <div>
+                        <span class="section-number">03</span>
+                        <h2>Moderation Result</h2>
+                        <p>AI-generated analysis of the submitted image.</p>
+                    </div>
+
+                    <span id="decisionBadge" class="decision-badge">
+                        UNKNOWN
+                    </span>
+                </div>
+
+                <div class="result-overview">
+                    <div class="result-highlight">
+                        <span class="result-label">Final Decision</span>
+                        <h3 id="decisionValue">-</h3>
+                        <p>Content moderation verdict</p>
+                    </div>
+
+                    <div class="result-highlight">
+                        <span class="result-label">Risk Severity</span>
+                        <h3 id="severityValue">-</h3>
+                        <p>Detected risk level</p>
+                    </div>
+                </div>
+
+                <div class="result-details">
+                    <div class="detail-card">
+                        <span class="result-label">Request ID</span>
+                        <strong id="requestIdValue">-</strong>
+                    </div>
+
+                    <div class="detail-card">
+                        <span class="result-label">Timestamp</span>
+                        <strong id="timestampValue">-</strong>
+                    </div>
+                </div>
+
+                <div class="labels-section">
+                    <div class="subsection-heading">
+                        <h3>
+                            <i class="fa-solid fa-tags"></i>
+                            Detected Labels
+                        </h3>
+
+                        <span class="label-count" id="labelCount">0 labels</span>
+                    </div>
+
+                    <div id="labelsContainer">
+                        <p class="empty-labels">
+                            No moderation labels detected.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <footer>
+                <span>Sentinel AI · Smart Content Moderation Engine</span>
+                <span>Built with AWS Lambda, API Gateway and Rekognition</span>
+            </footer>
+
+        </main>
+    </div>
+
+    <script src="script.js?v=2"></script>
+</body>
+</html>

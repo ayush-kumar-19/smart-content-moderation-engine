@@ -1,6 +1,7 @@
 import json
 import os
 import uuid
+import base64
 import urllib.request
 import urllib.parse
 import urllib.error
@@ -421,40 +422,106 @@ def lambda_handler(event, context):
                 }
             )
 
+                # ----------------------------------------------------
+        # Read image URL or Base64-uploaded image
+        # ----------------------------------------------------
+
         image_url = body.get("imageUrl")
+        image_base64 = body.get("imageBase64")
+        file_name = body.get("fileName", "uploaded-image")
 
-        if not image_url:
-
+        if not image_url and not image_base64:
             return response(
                 400,
                 {
-                    "error": "imageUrl is required",
+                    "error": "Provide either imageUrl or imageBase64",
                     "requestId": request_id
                 }
             )
 
-        if not isinstance(image_url, str):
-
+        if image_url and image_base64:
             return response(
                 400,
                 {
-                    "error": "imageUrl must be a string",
+                    "error": "Provide only one image source",
                     "requestId": request_id
                 }
             )
 
         # ----------------------------------------------------
-        # Download image
+        # Obtain image bytes
         # ----------------------------------------------------
 
-        print("IMAGE_DOWNLOAD_STARTED")
+        if image_base64:
+            print("BASE64_IMAGE_PROCESSING_STARTED")
 
-        image_bytes = download_image(image_url)
+            if not isinstance(image_base64, str):
+                return response(
+                    400,
+                    {
+                        "error": "imageBase64 must be a string",
+                        "requestId": request_id
+                    }
+                )
 
-        print(
-            f"IMAGE_DOWNLOAD_COMPLETED: "
-            f"{len(image_bytes)} bytes"
-        )
+            try:
+                image_bytes = base64.b64decode(
+                    image_base64,
+                    validate=True
+                )
+            except Exception:
+                return response(
+                    400,
+                    {
+                        "error": "Invalid Base64 image data",
+                        "requestId": request_id
+                    }
+                )
+
+            if len(image_bytes) == 0:
+                return response(
+                    400,
+                    {
+                        "error": "Uploaded image is empty",
+                        "requestId": request_id
+                    }
+                )
+
+            if len(image_bytes) > MAX_IMAGE_SIZE:
+                return response(
+                    400,
+                    {
+                        "error": "Image is larger than 5 MB",
+                        "requestId": request_id
+                    }
+                )
+
+            print(
+                f"BASE64_IMAGE_PROCESSING_COMPLETED: "
+                f"{len(image_bytes)} bytes, file={file_name}"
+            )
+
+            # Used for logs and notifications.
+            image_url = f"Uploaded file: {file_name}"
+
+        else:
+            if not isinstance(image_url, str):
+                return response(
+                    400,
+                    {
+                        "error": "imageUrl must be a string",
+                        "requestId": request_id
+                    }
+                )
+
+            print("IMAGE_DOWNLOAD_STARTED")
+
+            image_bytes = download_image(image_url)
+
+            print(
+                f"IMAGE_DOWNLOAD_COMPLETED: "
+                f"{len(image_bytes)} bytes"
+            )
 
         # ----------------------------------------------------
         # Rekognition
