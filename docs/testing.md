@@ -1,328 +1,171 @@
 # Testing Documentation
 
-## Smart Content Moderation Engine
+The system was tested across the backend, AWS services, API, notifications, and frontend.
 
-This document records the testing performed on the Smart Content Moderation Engine and the expected results.
+---
 
-## Testing Objectives
-
-The system was tested to verify that:
-
-- Valid image URLs are processed correctly.
-- Safe images are approved.
-- Unsafe images are flagged.
-- Severity is calculated correctly.
-- Moderation results are stored in DynamoDB.
-- Flagged content generates SNS email notifications.
-- Flagged content generates Discord notifications.
-- Lambda execution is recorded in CloudWatch.
-- API Gateway correctly invokes Lambda.
-
-## Test Environment
-
-| Component | Configuration |
-|---|---|
-| AWS Region | `ap-south-1` |
-| Lambda | `SmartContentModerationFunction` |
-| API | `SmartContentModeration` |
-| Route | `POST /moderate` |
-| DynamoDB | `ModerationLogs` |
-| SNS Topic | `content-moderation-alerts` |
-| Runtime | Python 3.14 |
-
-## Test Case 1: Safe Image
+## Test 1 — Safe Image
 
 ### Objective
 
-Verify that an image containing normal, safe content is approved.
+Verify that an image without detected moderation violations is approved.
 
 ### Expected Result
 
 ```text
-Decision: APPROVED
-Severity: LOW
-Labels: []
+Verdict: APPROVED
+Alert: False
 ```
 
-### Actual Result
+### Result
+
+The safe image was successfully processed and classified as approved.
 
 ```text
-Decision: APPROVED
-No moderation labels detected.
-DynamoDB audit record created.
+Status: PASS
 ```
 
-### Status
+---
 
-```text
-PASS
-```
-
-## Test Case 2: Flagged Image
+## Test 2 — Flagged Image
 
 ### Objective
 
-Verify that an image containing unsafe content is detected and flagged.
+Verify that an image containing moderation violations is flagged.
 
 ### Expected Result
 
 ```text
-Decision: FLAGGED
+Verdict: FLAGGED
 Severity: HIGH
+Alert: True
 ```
 
-### Actual Result
+### Result
 
-Amazon Rekognition detected moderation labels including:
+The flagged image was detected by Amazon Rekognition with labels including:
 
 ```text
 Weapons
 Violence
 ```
 
-The highest confidence was approximately:
+The moderation engine generated a high-severity flagged result.
 
 ```text
-99.95%
+Status: PASS
 ```
 
-The system classified the content as:
+---
 
-```text
-FLAGGED
-HIGH
-```
+## Test 3 — DynamoDB Logging
 
-### Status
-
-```text
-PASS
-```
-
-## Test Case 3: DynamoDB Audit Logging
-
-### Objective
-
-Verify that moderation requests are stored in DynamoDB.
-
-### Expected Result
-
-A record should be created in:
+The moderation result was successfully stored in:
 
 ```text
 ModerationLogs
 ```
 
-using:
-
 ```text
-requestId
+Status: PASS
 ```
 
-as the partition key.
+---
 
-### Actual Result
+## Test 4 — SNS Notification
 
-Moderation records were successfully stored and verified in DynamoDB.
-
-### Status
+A flagged-content notification was successfully received through the configured email subscription.
 
 ```text
-PASS
+Status: PASS
 ```
 
-## Test Case 4: SNS Email Notification
+---
+
+## Test 5 — Discord Notification
+
+The moderation alert was successfully delivered to the configured Discord channel.
+
+```text
+Status: PASS
+```
+
+---
+
+## Test 6 — CloudWatch Logging
+
+Lambda execution information was successfully recorded in Amazon CloudWatch Logs.
+
+```text
+Status: PASS
+```
+
+---
+
+## Test 7 — API Gateway
+
+The API Gateway moderation endpoint successfully processed a safe image request.
+
+```text
+Status: PASS
+```
+
+---
+
+## Test 8 — Frontend Image URL
+
+The dashboard successfully sent an image URL to the moderation API and displayed the returned moderation result.
+
+```text
+Status: PASS
+```
+
+---
+
+## Test 9 — Frontend Laptop Upload
 
 ### Objective
 
-Verify that flagged content generates an email notification.
+Verify that users can select an image directly from their laptop.
 
-### Expected Result
-
-A notification should be published to:
+### Process
 
 ```text
-content-moderation-alerts
-```
-
-and delivered to the confirmed email subscription.
-
-### Actual Result
-
-The flagged-image test generated an SNS notification and the email was successfully received.
-
-### Status
-
-```text
-PASS
-```
-
-## Test Case 5: Discord Notification
-
-### Objective
-
-Verify that flagged content generates a Discord alert.
-
-### Expected Result
-
-A notification should appear in:
-
-```text
-#moderation-alerts
-```
-
-### Actual Result
-
-The Discord moderation channel successfully received the flagged-content notification.
-
-### Status
-
-```text
-PASS
-```
-
-## Test Case 6: CloudWatch Logging
-
-### Objective
-
-Verify that Lambda execution information is available for monitoring and troubleshooting.
-
-### Expected Result
-
-Lambda execution logs should be available in Amazon CloudWatch Logs.
-
-### Actual Result
-
-CloudWatch logs were verified for Lambda executions, moderation results, and processing activity.
-
-### Status
-
-```text
-PASS
-```
-
-## Test Case 7: API Gateway Integration
-
-### Objective
-
-Verify that API Gateway successfully invokes the Lambda function.
-
-### Request
-
-```http
-POST /moderate
-Content-Type: application/json
-```
-
-Example body:
-
-```json
-{
-  "imageUrl": "https://example.com/image.jpg"
-}
-```
-
-### Expected Result
-
-API Gateway should invoke Lambda and return the moderation result.
-
-### Actual Result
-
-The deployed API successfully processed a safe public image and returned an:
-
-```text
-APPROVED
-```
-
-moderation response.
-
-### Status
-
-```text
-PASS
-```
-
-## Test Summary
-
-| Test Case | Expected Result | Status |
-|---|---|---|
-| Safe image | APPROVED | PASS |
-| Unsafe image | FLAGGED | PASS |
-| Severity calculation | Correct severity | PASS |
-| DynamoDB logging | Record stored | PASS |
-| SNS notification | Email received | PASS |
-| Discord notification | Alert received | PASS |
-| CloudWatch logging | Logs available | PASS |
-| API Gateway integration | API returns result | PASS |
-
-## Moderation Decision Testing
-
-The decision engine follows:
-
-```text
-No labels
-    |
-    v
-APPROVED
-```
-
-For detected moderation labels:
-
-```text
-Confidence >= 90%
-        |
-        v
-FLAGGED + HIGH
-```
-
-```text
-Confidence 70% - 89.99%
-        |
-        v
-FLAGGED + MEDIUM
-```
-
-## End-to-End Test Flow
-
-```text
-Client
-  |
-  v
+Laptop Image
+     ↓
+Browser File Input
+     ↓
+Base64 Conversion
+     ↓
 API Gateway
-  |
-  v
+     ↓
 Lambda
-  |
-  v
-Rekognition
-  |
-  v
-Decision Engine
-  |
-  +-----------> DynamoDB
-  |
-  +-- FLAGGED -> SNS -> Email
-  |
-  +-- FLAGGED -> Discord
-  |
-  v
-API Response
+     ↓
+Amazon Rekognition
 ```
 
-## Testing Conclusion
+### Result
 
-The core Smart Content Moderation Engine workflow was successfully tested.
+The uploaded image was successfully accepted by the dashboard and processed through the moderation pipeline.
 
-The system successfully:
+```text
+Status: PASS
+```
 
-- Processes image URLs.
-- Detects unsafe content using Amazon Rekognition.
-- Approves safe content.
-- Flags unsafe content.
-- Calculates moderation severity.
-- Stores moderation results in DynamoDB.
-- Sends email alerts through SNS.
-- Sends Discord alerts.
-- Produces CloudWatch logs.
-- Exposes the moderation functionality through API Gateway.
+---
 
+## Overall Testing Result
+
+| Component | Result |
+|---|---|
+| Lambda | PASS |
+| Rekognition | PASS |
+| DynamoDB | PASS |
+| SNS | PASS |
+| Discord | PASS |
+| CloudWatch | PASS |
+| API Gateway | PASS |
+| Frontend URL moderation | PASS |
+| Frontend laptop upload | PASS |
+
+The end-to-end moderation workflow was successfully validated.

@@ -1,49 +1,56 @@
 # Deployment Guide
 
-## Smart Content Moderation Engine
-
-This document describes the deployment process for the Smart Content Moderation Engine on AWS.
-
-## Deployment Architecture
+## Final Deployment Architecture
 
 ```text
-GitHub Repository
-       |
-       v
-Lambda Function
-       |
-       +----> Amazon Rekognition
-       |
-       +----> DynamoDB
-       |
-       +----> Amazon SNS
-       |
-       +----> Discord Webhook
-       |
-       v
-API Gateway
+                   GitHub Repository
+                          |
+             +------------+------------+
+             |                         |
+        Backend Code               Frontend
+             |                         |
+          Lambda                  Amazon S3
+             |                         |
+        API Gateway             Static Website
+             |
+          Lambda
+             |
+      Amazon Rekognition
+             |
+       Decision Engine
+        /           \
+       /             \
+  DynamoDB       Notifications
+                 /          \
+               SNS        Discord
+                |
+              Email
 ```
 
-## AWS Region
+## Backend Deployment
 
-Deploy the application resources in:
+The backend consists of:
 
-```text
-ap-south-1
-```
+- AWS Lambda
+- Amazon API Gateway
+- Amazon Rekognition
+- Amazon DynamoDB
+- Amazon SNS
+- Amazon CloudWatch
+- AWS IAM
 
-## 1. Deploy Lambda Code
+## Lambda
 
-The Lambda application code is located at:
-
-```text
-lambda/lambda_function.py
-```
-
-The deployed Lambda function is:
+Function:
 
 ```text
 SmartContentModerationFunction
+```
+
+Source:
+
+```text
+lambda/lambda_function.py
 ```
 
 Runtime:
@@ -52,61 +59,9 @@ Runtime:
 Python 3.14
 ```
 
-Architecture:
+## API Gateway
 
-```text
-x86_64
-```
-
-Memory:
-
-```text
-256 MB
-```
-
-Timeout:
-
-```text
-30 seconds
-```
-
-## 2. Configure Lambda Environment Variables
-
-The Lambda function requires:
-
-```text
-TABLE_NAME=ModerationLogs
-SNS_TOPIC_ARN=<SNS topic ARN>
-DISCORD_WEBHOOK_URL=<Discord webhook URL>
-```
-
-The actual Discord webhook URL must not be stored in source code or committed to GitHub.
-
-## 3. Configure Lambda IAM Role
-
-Lambda uses:
-
-```text
-SmartContentModerationLambdaRole
-```
-
-Required permissions include:
-
-```text
-rekognition:DetectModerationLabels
-dynamodb:PutItem
-sns:Publish
-```
-
-CloudWatch logging is provided through:
-
-```text
-AWSLambdaBasicExecutionRole
-```
-
-## 4. Deploy API Gateway
-
-The HTTP API is:
+HTTP API:
 
 ```text
 SmartContentModeration
@@ -118,190 +73,120 @@ Route:
 POST /moderate
 ```
 
-Integration:
+## Frontend Deployment
+
+Frontend:
 
 ```text
-SmartContentModerationFunction
+frontend/
 ```
 
-Payload format:
+Upload:
+
+```bash
+aws s3 sync frontend s3://YOUR-FRONTEND-BUCKET-NAME
+```
+
+The S3 bucket is configured for static website hosting.
+
+## End-to-End Request Flow
+
+### Image URL
 
 ```text
-2.0
+User
+ ↓
+S3 Frontend
+ ↓
+API Gateway
+ ↓
+Lambda
+ ↓
+Rekognition
+ ↓
+Decision
+ ↓
+DynamoDB
+ ↓
+Response
 ```
 
-Stage:
+### Laptop Upload
 
 ```text
-$default
+User selects image
+ ↓
+Browser reads image
+ ↓
+Base64 conversion
+ ↓
+S3 Frontend
+ ↓
+API Gateway
+ ↓
+Lambda
+ ↓
+Rekognition
+ ↓
+Decision
+ ↓
+DynamoDB
+ ↓
+SNS / Discord if flagged
+ ↓
+Frontend result
 ```
 
-## 5. API Endpoint
-
-The deployed endpoint is:
+## Notifications
 
 ```text
-https://hls7qob2vf.execute-api.ap-south-1.amazonaws.com/moderate
+Lambda
+ ├──→ SNS → Email
+ └──→ Discord Webhook
 ```
 
-## 6. DynamoDB Configuration
-
-The deployed DynamoDB table is:
-
-```text
-ModerationLogs
-```
-
-Partition key:
-
-```text
-requestId
-```
-
-The table uses on-demand capacity.
-
-## 7. SNS Configuration
-
-The SNS topic is:
-
-```text
-content-moderation-alerts
-```
-
-The confirmed email subscription receives alerts when content is flagged.
-
-## 8. Discord Configuration
-
-Flagged-content notifications are sent to the configured Discord moderation channel through the webhook.
-
-The webhook is supplied to Lambda through the environment variable:
+The Discord webhook is configured through:
 
 ```text
 DISCORD_WEBHOOK_URL
 ```
 
-## 9. Deployment Verification
+## Logging
 
-After deployment, verify the following:
+Lambda execution logs are available through Amazon CloudWatch Logs.
 
-### Lambda
+DynamoDB provides persistent moderation audit records.
 
-Confirm that:
+## Deployment Verification
 
-```text
-SmartContentModerationFunction
-```
+The completed deployment was verified through:
 
-is active and has the correct environment variables.
+- Lambda execution
+- Amazon Rekognition response
+- DynamoDB audit record
+- SNS notification
+- Discord notification
+- CloudWatch logs
+- API Gateway request
+- Frontend image URL submission
+- Frontend laptop image upload
 
-### API Gateway
+## Production Improvement
 
-Confirm that:
+The current academic frontend uses an S3 static website endpoint.
 
-```text
-POST /moderate
-```
-
-is deployed and connected to Lambda.
-
-### DynamoDB
-
-Confirm that:
+For production:
 
 ```text
-ModerationLogs
-```
-
-exists and accepts moderation records.
-
-### SNS
-
-Confirm that:
-
-```text
-content-moderation-alerts
-```
-
-has a confirmed email subscription.
-
-### Discord
-
-Confirm that the moderation webhook is configured.
-
-### CloudWatch
-
-Confirm that Lambda execution logs are available.
-
-## 10. Source Code Deployment
-
-The source code is maintained in GitHub.
-
-Repository:
-
-```text
-smart-content-moderation-engine
-```
-
-Important files:
-
-```text
-lambda/lambda_function.py
-README.md
-architecture/architecture.md
-docs/api.md
-docs/setup.md
-```
-
-After changing application code:
-
-```text
-1. Update lambda/lambda_function.py
-2. Test the code
-3. Deploy the updated Lambda code
-4. Verify CloudWatch logs
-5. Commit changes to GitHub
-6. Push changes to the main branch
-```
-
-## 11. Production Deployment Improvements
-
-For a production environment, the deployment can be improved using Infrastructure as Code.
-
-Possible options:
-
-- AWS SAM
-- Terraform
-- AWS CloudFormation
-
-Additional production components may include:
-
-- Amazon S3
-- Amazon SQS
-- Amazon EventBridge
-- AWS Secrets Manager
-- AWS WAF
-- CloudWatch alarms
-- API authentication
-
-## Deployment Complete
-
-The deployed system provides:
-
-```text
-HTTPS API
-    |
-    v
+User
+ ↓
+CloudFront HTTPS
+ ↓
+Private S3 Bucket
+ ↓
+Frontend
+ ↓
 API Gateway
-    |
-    v
-Lambda
-    |
-    +----> Rekognition
-    |
-    +----> DynamoDB
-    |
-    +----> SNS ----> Email
-    |
-    +----> Discord
 ```
 
+This provides HTTPS and avoids exposing the S3 bucket directly to public website traffic.

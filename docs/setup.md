@@ -1,216 +1,181 @@
 # Setup Guide
 
-## Smart Content Moderation Engine
-
-This guide describes the AWS resources and configuration required to set up the Smart Content Moderation Engine.
-
-## Prerequisites
-
-The project requires:
-
-- An AWS account
-- Access to AWS Management Console
-- Permission to create and configure Lambda, API Gateway, DynamoDB, SNS, IAM, Rekognition, and CloudWatch resources
-- A GitHub account for source-code management
-- A Discord server/channel with a webhook for moderator notifications
-
 ## AWS Region
 
-All core AWS resources are deployed in:
+The project was deployed in:
 
 ```text
 ap-south-1
 ```
 
-AWS Region:
+## Required AWS Services
+
+- AWS Lambda
+- Amazon API Gateway
+- Amazon Rekognition
+- Amazon DynamoDB
+- Amazon SNS
+- Amazon S3
+- Amazon CloudWatch
+- AWS IAM
+
+## DynamoDB
+
+Table:
 
 ```text
-Asia Pacific (Mumbai)
+ModerationLogs
 ```
 
-## 1. Create DynamoDB Table
+Partition key:
 
-Create a DynamoDB table with the following configuration:
+```text
+requestId
+```
 
-| Setting | Value |
-|---|---|
-| Table name | `ModerationLogs` |
-| Partition key | `requestId` |
-| Partition key type | String |
-| Sort key | None |
-| Capacity mode | On-demand |
-| Region | `ap-south-1` |
+## SNS
 
-The table stores the moderation audit records.
-
-## 2. Create SNS Topic
-
-Create an SNS topic:
+Topic:
 
 ```text
 content-moderation-alerts
 ```
 
-Configuration:
+Subscribe and confirm the required email address.
 
-- Type: Standard
-- Region: `ap-south-1`
-
-Create an email subscription to the topic and confirm the subscription using the confirmation email.
-
-## 3. Configure Discord Webhook
-
-Create a Discord channel for moderation alerts.
-
-Example:
+Lambda uses:
 
 ```text
-#moderation-alerts
+SNS_TOPIC_ARN
 ```
 
-Create a Discord webhook for the channel.
+## IAM
 
-The webhook URL should be treated as a secret and should not be committed to GitHub.
-
-## 4. Configure IAM Role
-
-Create an IAM role for the Lambda function.
-
-Role name:
+Lambda execution role:
 
 ```text
 SmartContentModerationLambdaRole
 ```
 
-Attach the AWS managed policy:
+The role provides permissions for Rekognition, DynamoDB, SNS, and CloudWatch Logs.
 
-```text
-AWSLambdaBasicExecutionRole
-```
+## Lambda
 
-The role also requires permissions for:
-
-```text
-rekognition:DetectModerationLabels
-dynamodb:PutItem
-sns:Publish
-```
-
-The permissions should be restricted to the required DynamoDB table and SNS topic.
-
-## 5. Create Lambda Function
-
-Create a Lambda function with:
-
-| Setting | Value |
-|---|---|
-| Function name | `SmartContentModerationFunction` |
-| Runtime | Python 3.14 |
-| Architecture | x86_64 |
-| Memory | 256 MB |
-| Timeout | 30 seconds |
-| Region | `ap-south-1` |
-| Execution role | `SmartContentModerationLambdaRole` |
-
-Upload the application code from:
-
-```text
-lambda/lambda_function.py
-```
-
-## 6. Configure Lambda Environment Variables
-
-Configure the following environment variables:
-
-```text
-TABLE_NAME=ModerationLogs
-SNS_TOPIC_ARN=<SNS topic ARN>
-DISCORD_WEBHOOK_URL=<Discord webhook URL>
-```
-
-Do not commit the actual Discord webhook URL to GitHub.
-
-## 7. Configure Amazon Rekognition
-
-No model deployment is required for the standard moderation API.
-
-The Lambda function uses:
-
-```text
-DetectModerationLabels
-```
-
-to analyze submitted images.
-
-## 8. Create API Gateway
-
-Create an HTTP API with:
-
-```text
-API name:
-SmartContentModeration
-```
-
-Create the route:
-
-```text
-POST /moderate
-```
-
-Integrate the route with:
+Function:
 
 ```text
 SmartContentModerationFunction
 ```
 
-Use payload format:
+Runtime:
+
+```text
+Python 3.14
+```
+
+Architecture:
+
+```text
+x86_64
+```
+
+Memory:
+
+```text
+256 MB
+```
+
+Timeout:
+
+```text
+30 seconds
+```
+
+## Lambda Environment Variables
+
+```text
+TABLE_NAME
+SNS_TOPIC_ARN
+DISCORD_WEBHOOK_URL
+```
+
+## API Gateway
+
+HTTP API:
+
+```text
+SmartContentModeration
+```
+
+Route:
+
+```text
+POST /moderate
+```
+
+Payload format:
 
 ```text
 2.0
 ```
 
-Enable automatic deployment using the `$default` stage.
-
-## 9. API Endpoint
-
-The deployed API endpoint is:
+Integration:
 
 ```text
-https://hls7qob2vf.execute-api.ap-south-1.amazonaws.com/moderate
+AWS Lambda
 ```
 
-Clients send image URLs to this endpoint.
+## Frontend
 
-## 10. CloudWatch Logs
-
-AWS Lambda automatically creates CloudWatch Logs for the function.
-
-Use CloudWatch Logs to inspect:
-
-- Request processing
-- Moderation results
-- Errors
-- DynamoDB writes
-- SNS notification status
-- Discord notification status
-
-## 11. GitHub Repository
-
-The source code is maintained in the GitHub repository:
+Frontend files:
 
 ```text
-smart-content-moderation-engine
+frontend/
+├── index.html
+├── style.css
+└── script.js
 ```
 
-Repository structure:
+The frontend is hosted using Amazon S3 Static Website Hosting and supports:
+
+- Image URL moderation
+- Laptop image upload
+- Base64 image submission
+- Moderation result display
+- Flagged-content information
+
+## S3 Frontend Deployment
+
+Example bucket naming:
+
+```text
+smart-content-moderation-frontend-<AWS_ACCOUNT_ID>
+```
+
+Upload:
+
+```bash
+aws s3 sync frontend s3://YOUR-FRONTEND-BUCKET-NAME
+```
+
+The repository contains:
+
+```text
+bucket-policy.example.json
+```
+
+Replace the placeholder bucket name with the actual bucket name before applying the policy.
+
+## GitHub Structure
 
 ```text
 smart-content-moderation-engine/
 ├── README.md
 ├── LICENSE
 ├── .gitignore
+├── bucket-policy.example.json
 ├── lambda/
-│   └── lambda_function.py
+├── frontend/
 ├── tests/
 ├── api/
 ├── architecture/
@@ -218,36 +183,33 @@ smart-content-moderation-engine/
 └── screenshots/
 ```
 
-## 12. Security Configuration
+## Production Recommendation
 
-Follow these practices during setup:
+The current academic deployment uses the S3 static website endpoint.
 
-- Use an IAM role instead of AWS access keys inside Lambda.
-- Grant Lambda only the permissions it requires.
-- Store the Discord webhook as an environment variable.
-- Never commit webhook URLs, passwords, access keys, or other secrets to GitHub.
-- Keep DynamoDB and SNS permissions restricted to the required resources.
-- Use HTTPS for API requests.
-
-## Setup Complete
-
-After completing the configuration, the expected architecture is:
+For production:
 
 ```text
-Client
-   |
-   v
-API Gateway
-   |
-   v
-Lambda
-   |
-   +------> Rekognition
-   |
-   +------> DynamoDB
-   |
-   +------> SNS ------> Email
-   |
-   +------> Discord
+Amazon S3
+    ↓
+Amazon CloudFront
+    ↓
+HTTPS
+    ↓
+Users
 ```
 
+Prefer a private S3 bucket with CloudFront Origin Access Control.
+
+## Security Practice
+
+Never commit:
+
+- AWS access keys
+- AWS secret keys
+- Discord webhook URLs
+- API secrets
+- Private credentials
+- Local environment files
+
+Only example configuration files containing placeholders should be committed.
